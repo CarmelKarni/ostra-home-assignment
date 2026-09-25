@@ -121,9 +121,6 @@ curl "http://localhost:5000/users/{userId}/messages/fetch?startIndex=0&endIndex=
 # Fetch unread messages
 curl http://localhost:5000/users/{userId}/messages/unread
 
-# Fetch sent messages
-curl http://localhost:5000/users/{userId}/messages/sent
-
 # Update read status
 curl -X PATCH "http://localhost:5000/users/{userId}/messages/{messageId}/read-status?isRead=true"
 
@@ -145,7 +142,7 @@ curl -X DELETE http://localhost:5000/users/{userId}/messages/delete-batch \
 #### ID-based Pagination (not offset/limit)
 - **Why**: More stable when deletions occur between requests, natural ordering with ID ranges
 - **How**: `startIndex` (inclusive) and `endIndex` (exclusive) define message ID ranges
-- **Optional parameters**: Both are optional; defaults to first 10 messages (0, 10)
+- **Optional parameters**: Both are optional
 - **Special case**: Negative `endIndex` means no upper limit (fetch all from startIndex)
 
 #### Message Length Limit
