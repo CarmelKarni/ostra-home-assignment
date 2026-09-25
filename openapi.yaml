@@ -1,0 +1,549 @@
+openapi: 3.0.0
+info:
+  title: User Management API
+  description: A simple REST API for managing users
+  version: 1.0.0
+  contact:
+    name: API Support
+
+servers:
+  - url: http://localhost:5000
+    description: Development server
+
+paths:
+  /users:
+    post:
+      summary: Create a new user
+      description: Creates a new user with auto-generated unique ID
+      tags:
+        - Users
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Invalid input (missing name or email)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    get:
+      summary: Get all users
+      description: Retrieves a list of all users
+      tags:
+        - Users
+      responses:
+        '200':
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+
+  /users/{userId}:
+    get:
+      summary: Get user by ID
+      description: Retrieves a specific user by their ID
+      tags:
+        - Users
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: The user ID
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    put:
+      summary: Update a user
+      description: Updates an existing user's name and/or email
+      tags:
+        - Users
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: The user ID
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: User updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      summary: Delete a user
+      description: Deletes a user by their ID
+      tags:
+        - Users
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: The user ID
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users/{userId}/messages/send:
+    post:
+      summary: Send a message
+      description: Sends a message from one user to another
+      tags:
+        - Messages
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: The sender's user ID
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendMessageRequest'
+      responses:
+        '201':
+          description: Message sent successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        '400':
+          description: Invalid input (missing fields or message too long)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Receiver not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users/{userId}/messages/fetch:
+    get:
+      summary: Fetch messages for a user
+      description: Retrieves messages received by a user with optional pagination. Defaults to startIndex=0 and endIndex=10
+      tags:
+        - Messages
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: The receiver's user ID
+          schema:
+            type: string
+        - name: startIndex
+          in: query
+          required: false
+          description: Starting index for pagination (0-based). Defaults to 0
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: endIndex
+          in: query
+          required: false
+          description: Ending index for pagination (exclusive). Defaults to 10
+          schema:
+            type: integer
+            minimum: 1
+            default: 10
+      responses:
+        '200':
+          description: Messages retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Message'
+        '400':
+          description: Invalid input
+
+  /users/{userId}/messages/unread:
+    get:
+      summary: Fetch unread messages
+      description: Retrieves all unread messages for a user
+      tags:
+        - Messages
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: The receiver's user ID
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Unread messages retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Message'
+        '400':
+          description: Invalid input
+
+  /users/{userId}/messages/{messageId}:
+    delete:
+      summary: Delete a single received message
+      description: Deletes a received message by ID
+      tags:
+        - Messages
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: The user ID (owner of the message)
+          schema:
+            type: string
+        - name: messageId
+          in: path
+          required: true
+          description: The message ID to delete
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Message deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteResponse'
+        '400':
+          description: Invalid input
+        '404':
+          description: Message not found
+
+  /users/{userId}/messages/delete-batch:
+    delete:
+      summary: Delete multiple received messages
+      description: Deletes multiple received messages by their IDs
+      tags:
+        - Messages
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: The user ID (owner of the messages)
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeleteMessagesRequest'
+      responses:
+        '200':
+          description: Messages deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteMessagesResponse'
+        '400':
+          description: Invalid input
+
+  /users/{userId}/messages/{messageId}/read-status:
+    patch:
+      summary: Change message read status
+      description: Marks a message as read or unread
+      tags:
+        - Messages
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: The user ID (receiver of the message)
+          schema:
+            type: string
+        - name: messageId
+          in: path
+          required: true
+          description: The message ID
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangeReadStatusRequest'
+      responses:
+        '200':
+          description: Message read status updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        '400':
+          description: Invalid input
+        '404':
+          description: Message not found
+
+  /health:
+    get:
+      summary: Health check
+      description: Checks if the server is running
+      tags:
+        - Health
+      responses:
+        '200':
+          description: Server is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+components:
+  schemas:
+    User:
+      type: object
+      required:
+        - id
+        - name
+        - email
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique user identifier (auto-generated)
+          example: 550e8400-e29b-41d4-a716-446655440000
+        name:
+          type: string
+          description: User's full name
+          example: John Doe
+        email:
+          type: string
+          format: email
+          description: User's email address
+          example: john@example.com
+
+    CreateUserRequest:
+      type: object
+      required:
+        - name
+        - email
+      properties:
+        name:
+          type: string
+          description: User's full name
+          example: John Doe
+        email:
+          type: string
+          format: email
+          description: User's email address
+          example: john@example.com
+
+    UpdateUserRequest:
+      type: object
+      description: At least one field must be provided
+      properties:
+        name:
+          type: string
+          description: User's full name
+          example: Jane Doe
+        email:
+          type: string
+          format: email
+          description: User's email address
+          example: jane@example.com
+
+    Error:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          description: Error message
+          example: name and email are required
+
+    DeleteResponse:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          description: Success message
+          example: User deleted successfully
+
+    HealthResponse:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          description: Server status
+          example: healthy
+
+    Message:
+      type: object
+      required:
+        - id
+        - senderId
+        - receiverId
+        - message
+        - timestamp
+        - isRead
+      properties:
+        id:
+          type: integer
+          description: Unique message identifier (auto-generated)
+          example: 1
+        senderId:
+          type: string
+          format: uuid
+          description: User ID of the message sender
+          example: 550e8400-e29b-41d4-a716-446655440000
+        receiverId:
+          type: string
+          format: uuid
+          description: User ID of the message receiver
+          example: 660e8400-e29b-41d4-a716-446655440001
+        message:
+          type: string
+          description: Message content (up to 1000 characters)
+          example: Hello, how are you?
+          maxLength: 1000
+        timestamp:
+          type: string
+          format: date-time
+          description: When the message was sent
+          example: 2024-01-15T10:30:00Z
+        isRead:
+          type: boolean
+          description: Whether the message has been read by the receiver
+          example: false
+
+    SendMessageRequest:
+      type: object
+      required:
+        - receiverId
+        - message
+      properties:
+        receiverId:
+          type: string
+          format: uuid
+          description: User ID of the message receiver
+          example: 660e8400-e29b-41d4-a716-446655440001
+        message:
+          type: string
+          description: Message content (plaintext, up to 1000 characters)
+          example: Hello, how are you?
+          maxLength: 1000
+
+    DeleteMessageRequest:
+      type: object
+      required:
+        - messageId
+      properties:
+        messageId:
+          type: integer
+          description: ID of the message to delete
+          example: 1
+
+    DeleteMessagesRequest:
+      type: object
+      required:
+        - messageIds
+      properties:
+        messageIds:
+          type: array
+          items:
+            type: integer
+          description: List of message IDs to delete
+          example:
+            - 1
+            - 2
+
+    DeleteMessagesResponse:
+      type: object
+      required:
+        - message
+        - deletedCount
+      properties:
+        message:
+          type: string
+          description: Success message
+          example: Messages deleted successfully
+        deletedCount:
+          type: integer
+          description: Number of messages successfully deleted
+          example: 2
+
+    ChangeReadStatusRequest:
+      type: object
+      required:
+        - isRead
+      properties:
+        isRead:
+          type: boolean
+          description: Whether the message should be marked as read (true) or unread (false)
+          example: true
